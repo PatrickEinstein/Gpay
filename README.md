@@ -1,4 +1,4 @@
-# Octave Payment Gateway - Robust Payment Processing System
+# GreenBarter Payment Gateway - Robust Payment Processing System
 
 ## Overview
 
@@ -33,7 +33,7 @@ The gateway is robust, scalable, and optimized for secure financial transactions
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/PatrickEinstein/Octave_Payment_Gateway.git
+   git clone https://github.com/PatrickEinstein/Gpay_Gateway.git
    ```
 
 

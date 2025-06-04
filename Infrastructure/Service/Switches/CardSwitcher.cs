@@ -1,0 +1,94 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Gpay.Data;
+using Gpay.Infrastructure.Services.Mains;
+using Gpay.Infrasturcture.Interfaces.Utilities;
+using Gpay.Interfaces.IProcessors;
+using Gpay.Models;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
+using Gpay.Core.Enums;
+using Gpay.Core.Models;
+using Gpay.Infrastructure.Interfaces.ICryptographies;
+using Gpay.Infrastructure.Interfaces.IRepositories;
+using Gpay.Infrastructure.Interfaces.ISwitches;
+using Gpay.Infrastructure.Service.Processors;
+
+
+namespace accessFT.Infrastructures.Services.Switches
+{
+    public class CardSwitcher : ICardSwitcher
+    {
+
+        private readonly Dictionary<string, IPaymentProcessor> cardProcessors = new();
+
+        private readonly AppUrl appUrl;
+        private readonly DataBaseContext dataBaseContext;
+        private readonly PaystackAuthConfig paystackAuthConfig;
+        private readonly PayStackAppUrls payStackAppUrls;
+        private readonly FlutterAuthConfig flutterAuthConfig;
+        private readonly FlutterWaveAppUrls flutterWaveAppUrls;
+        private readonly IFlutterCryptography flutterCryptography;
+        private readonly ICardRepository cardRepository;
+        private readonly IWalletRepository walletRepository;
+        private readonly ILogger<FlutterWave> loggerflutter;
+        private readonly AuthConfig authConfig;
+        private readonly IPaymentRepository paymentRepository;
+
+        public IApiCaller ApiCaller { get; set; }
+
+        public CardSwitcher(AppUrl appUrl, IApiCaller apiCaller,
+        AuthConfig authConfig, IPaymentRepository paymentRepository,
+        DataBaseContext dataBaseContext,
+        PaystackAuthConfig paystackAuthConfig,
+        PayStackAppUrls payStackAppUrls,
+        FlutterAuthConfig flutterAuthConfig,
+        FlutterWaveAppUrls flutterWaveAppUrls,
+        IFlutterCryptography flutterCryptography,
+        ICardRepository cardRepository,
+        IWalletRepository walletRepository,
+        ILogger<FlutterWave> loggerflutter
+        )
+        {
+            this.ApiCaller = apiCaller;
+            this.authConfig = authConfig;
+            this.paymentRepository = paymentRepository;
+            this.dataBaseContext = dataBaseContext;
+            this.paystackAuthConfig = paystackAuthConfig;
+            this.payStackAppUrls = payStackAppUrls;
+            this.flutterAuthConfig = flutterAuthConfig;
+            this.flutterWaveAppUrls = flutterWaveAppUrls;
+            this.flutterCryptography = flutterCryptography;
+            this.cardRepository = cardRepository;
+            this.walletRepository = walletRepository;
+            this.loggerflutter = loggerflutter;
+            this.appUrl = appUrl;
+        }
+
+
+        public IPaymentProcessor SwitchCardProcessor(ChannelCode channelCode)
+        {
+            if (cardProcessors.ContainsKey(channelCode.ToString()))
+            {
+                return cardProcessors[channelCode.ToString()];
+            }
+
+            IPaymentProcessor cardProcessor = channelCode.ToString() switch
+            {
+                "chamsSwitch" => new ChamsSwitch(appUrl, ApiCaller, authConfig, paymentRepository, dataBaseContext),
+                "paystack" => new PayStack(payStackAppUrls, ApiCaller, paystackAuthConfig, paymentRepository, dataBaseContext),
+                "flutterWave" => new FlutterWave(flutterWaveAppUrls, ApiCaller, flutterAuthConfig, paymentRepository,dataBaseContext, flutterCryptography, cardRepository, walletRepository,loggerflutter),
+                _ => null,
+            };
+
+            if (cardProcessors != null)
+            {
+                cardProcessors[channelCode.ToString()] = cardProcessor;
+            }
+
+            return cardProcessor;
+        }
+    }
+}

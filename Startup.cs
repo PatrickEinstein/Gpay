@@ -1,0 +1,147 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi.Models;
+using Gpay.Data;
+
+
+
+using Serilog;
+
+using Gpay.Infrasturcture.Interfaces.Utilities;
+using Gpay.Infrasturcture.Interfaces.IRepositories;
+using Gpay.Infrastructure.Services.Mains;
+using Gpay.Infrastructure.Services.Repositories;
+using Gpay.Infrastructure.Services.Tasks;
+using Gpay.Infrastructure.Sevices.Mains;
+using Gpay.Infrastructure.Interfaces.IMains;
+using Gpay.Infrastructure.Interfaces.IManagers;
+using Gpay.Infrastructure.Service.Managers;
+using Gpay.Interfaces.IProcessors;
+using Gpay.Models;
+using Gpay.Infrastructure.Sevices.Utilities;
+using accessFT.Infrastructures.Services.Switches;
+using Gpay.Infrastructure.Interfaces.ISwitches;
+using Gpay.Infrastructure.Service.Switches;
+using Gpay.Core.Models;
+using Gpay.Infrastructure.Interfaces.IRepositories;
+using Gpay.Infrastructure.Service.Repositories;
+using Gpay.Infrastructure.Interfaces.ICryptographies;
+using Gpay.Infrastructure;
+using Gpay.Infrastructure.Service.Tasks;
+
+
+namespace Gpay
+{
+    public class Startup
+    {
+        public Startup(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
+
+        public IConfiguration Configuration { get; }
+
+        // This method gets called by the runtime. Use this method to add services to the container.
+        public void ConfigureServices(IServiceCollection services)
+        {
+            services.AddSingleton(Configuration.GetSection(nameof(AppUrl)).Get<AppUrl>());
+            services.AddSingleton(Configuration.GetSection(nameof(AuthConfig)).Get<AuthConfig>());
+            services.AddSingleton(Configuration.GetSection(nameof(PaystackAuthConfig)).Get<PaystackAuthConfig>());
+            services.AddSingleton(Configuration.GetSection(nameof(PayStackAppUrls)).Get<PayStackAppUrls>());
+            services.AddSingleton(Configuration.GetSection(nameof(FlutterAuthConfig)).Get<FlutterAuthConfig>());
+            services.AddSingleton(Configuration.GetSection(nameof(FlutterWaveAppUrls)).Get<FlutterWaveAppUrls>());
+            services.AddSingleton(Configuration.GetSection(nameof(CryptographyConfig)).Get<CryptographyConfig>());
+
+            services.AddDbContext<DataBaseContext>(options =>
+                                  {
+                                      var connectionString = Configuration.GetConnectionString("DefaultConnection");
+                                      options.UseNpgsql(connectionString);
+                                      //   b => b.MigrationsAssembly("DefaultConnection")
+                                  });
+            services.AddControllers();
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v2", new OpenApiInfo { Title = "Gpay PaymentGateway", Version = "v2"});
+
+            });
+
+            services.AddCors(Options =>
+            Options.AddPolicy("CorsPolicy",
+                builder =>
+                builder
+                .WithOrigins("*")
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+            ));
+
+            services.AddHttpClient<ApiCaller>();
+
+            // Processors
+            services.AddScoped<IPaymentProcessor, ChamsSwitch>();
+
+
+            // Utilities
+            services.AddTransient<IDapperContext, DapperContext>();
+            services.AddScoped<ICryptoGraphies, Cryptographies>();
+            services.AddTransient<IApiCaller, ApiCaller>();
+
+            // Mains
+            services.AddScoped<ITestService, TestService>();
+            services.AddScoped<ICustomerService, CustomerService>();
+
+
+            // Respositories
+            services.AddScoped<ITestRepository, TestRespository>();
+            services.AddScoped<ICustomerRepository, CustomerRepository>();
+            services.AddScoped<IPaymentRepository, PaymentRepository>();
+            services.AddScoped<ICardRepository, CardRepository>();
+            services.AddScoped<IWalletRepository, WalletRepository>();
+
+
+            // Tasks
+            services.AddHostedService<TestCronJob>();
+            services.AddHostedService<LoginTask>();
+            services.AddHostedService<WalletTransferTask>();
+
+            // Managers
+            services.AddScoped<IPaymentManager, PaymentManager>();
+
+
+            // Switches
+            services.AddScoped<ICardSwitcher, CardSwitcher>();
+            services.AddScoped<IBankTransferSwitcher, BankTransferSwitcher>();
+            services.AddScoped<IDirectDebitSwitcher, DirectDebitSwitcher>();
+
+            // UTILS
+            services.AddSingleton<IFlutterCryptography, FlutterCryptographyCryptography>();
+
+        }
+
+        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        {
+          
+            app.UseDeveloperExceptionPage();
+            app.UseSwagger();
+            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v2/swagger.json", "Octave PaymentGateway v2"));
+
+
+            app.UseHttpsRedirection();
+            app.UseSerilogRequestLogging();
+
+            app.UseRouting();
+            app.UseCors("CorsPolicy");
+            app.UseAuthorization();
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
+        }
+    }
+}
+
