@@ -4,7 +4,7 @@
 SERVER_USER="ec2-user"
 SERVER_IP="16.171.137.18"
 KEY_PATH="/d/ACTIVE/AWSEC2/patrick.pem"
-REMOTE_PATH="/usr/applications/Gpay"
+REMOTE_PATH="/usr/applications/gpay"
 LOCAL_PATH="bin/Release/net8.0/publish"
 
 # Delete old build artifacts

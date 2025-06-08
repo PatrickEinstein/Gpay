@@ -343,6 +343,13 @@ namespace Gpay.Infrastructure.Service.Repositories
             var response = new serviceResponse<string>();
             try
             {
+                 var isExist = await dataBaseContext.Withdrawals.FirstOrDefaultAsync(c => c.transactionReference == payload.transactionReference);
+                if (isExist != null)
+                {
+                    response.Data = null;
+                    response.Message = "transaction ref already exists";
+                    return response;
+                }
                 var wallet = await dataBaseContext.Wallets.FirstOrDefaultAsync(c => c.account_number == payload.wallet_accountNumber);
                 if (wallet == null)
                 {

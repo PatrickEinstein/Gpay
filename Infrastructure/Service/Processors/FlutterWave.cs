@@ -552,11 +552,18 @@ namespace Gpay.Infrastructure.Service.Processors
             var apiUrl = "https://api.flutterwave.com/v3/transfers";
             var res = await ApiCaller.POST(new StringContent(JsonSerializer.Serialize(new
             {
-                account_bank = "flutterwave",
-                account_number = payload.bank_accountNumber,
-                amount = payload.amount,
-                currency = "NGN",
-                debit_currency = "NGN"
+                    account_bank = "044",
+                    account_number = payload.bank_accountNumber,
+                    amount = payload.amount,
+                    currency = "NGN",
+                    callback_url = "https://webhook.site/5f9a659a-11a2-4925-89cf-8a59ea6a019a",
+                    narration = payload.narration,
+                    reference = payload.transactionReference,
+                    debit_currency = "USD",
+                    // debit_subaccount = "PSA******07974",
+                    // beneficiary = 3768,
+                    // beneficiary_name = "Yemi Desola",
+                    // destination_branch_code = "GH280103",
             }), Encoding.UTF8, "application/json"), apiUrl, authConfig.clientSecret, headers);
             var flutterResponse = JsonSerializer.Deserialize<FlutterBaseModel<WalletWithdrawTransferResponse, meta>>(res);
                 logger.LogInformation($"Flutterwave--withdraw-response==> {res}");
